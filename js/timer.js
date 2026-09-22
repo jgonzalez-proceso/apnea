@@ -287,13 +287,26 @@ const Feedback = {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (AC) this.ctx = new AC();
       }
-      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      if (this.ctx && this.ctx.state !== 'running') {
+        this.ctx.resume();
+        // iOS: reproducir un búfer mudo dentro del gesto desbloquea la salida de audio.
+        const src = this.ctx.createBufferSource();
+        src.buffer = this.ctx.createBuffer(1, 1, 22050);
+        src.connect(this.ctx.destination);
+        src.start(0);
+      }
     } catch { /* sin audio */ }
   },
 
   tone(freq, dur = 0.15, delay = 0, vol = 0.3, type = 'sine') {
     if (!Store.settings.sound || !this.ctx) return;
-    const t0 = this.ctx.currentTime + delay;
+    // Si el contexto aún está arrancando (primer toque) o iOS lo ha interrumpido,
+    // se programa al reanudarse; si no, los tonos cortos se pierden en silencio.
+    if (this.ctx.state !== 'running') {
+      this.ctx.resume().then(() => this.tone(freq, dur, delay, vol, type)).catch(() => {});
+      return;
+    }
+    const t0 = this.ctx.currentTime + 0.03 + delay;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = type;
@@ -350,8 +363,8 @@ const Feedback = {
         break;
       case 'mark':
         // Pi-pi seco y agudo: distinto de todos los demás avisos.
-        this.tone(1760, 0.05, 0, 0.18, 'square');
-        this.tone(1760, 0.05, 0.11, 0.18, 'square');
+        this.tone(1600, 0.08, 0, 0.3, 'square');
+        this.tone(1600, 0.08, 0.14, 0.3, 'square');
         this.vibrate([30, 60, 30]);
         break;
       case 'ready':
@@ -386,5 +399,8 @@ const Feedback = {
 };
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && Feedback.wantWake) Feedback.keepAwake(true);
+  if (document.visibilityState !== 'visible') return;
+  if (Feedback.wantWake) Feedback.keepAwake(true);
+  // Al volver de bloquear la pantalla, iOS deja el audio interrumpido.
+  if (Feedback.ctx && Feedback.ctx.state !== 'running') Feedback.ctx.resume().catch(() => {});
 });
