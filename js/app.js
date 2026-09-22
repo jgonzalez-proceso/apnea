@@ -430,6 +430,16 @@ function viewAjustes() {
       <button class="btn ghost" data-act="test-sound">Probar sonido</button>
     </section>
     <section class="card">
+      <h3>Marcas durante la apnea</h3>
+      <p class="hint">Un doble pitido corto y seco (pi-pi) cuando el reloj de apnea pasa por estos tiempos. Suena en cualquier sesión, también en Test MAX y Apnea libre.</p>
+      ${sw('markMax', 'Al superar tu MAX', `Ahora ${fmt(s.max)}. Se actualiza solo si cambias tu MAX.`)}
+      <div class="marks">${(s.marks || []).length
+        ? s.marks.map(m => `<span class="mark-chip">${fmt(m)}<button data-act="del-mark" data-v="${m}" aria-label="Quitar marca ${fmt(m)}">✕</button></span>`).join('')
+        : '<span class="hint">Sin marcas personalizadas.</span>'}</div>
+      <div class="max-row">${timeField('Nueva marca', 'mark', 180)}<button class="btn primary" data-act="add-mark">Añadir</button></div>
+      <div class="row"><button class="btn ghost" data-act="test-mark">Probar pitido</button></div>
+    </section>
+    <section class="card">
       <h3>Datos</h3>
       <p class="hint">Todo se guarda solo en este dispositivo. Haz copias de seguridad de vez en cuando.</p>
       <div class="row">
@@ -556,14 +566,26 @@ function editRound(type, week, i) {
 
 // ---------- Cronómetro ----------
 
+function apneaMarks(max) {
+  const s = Store.settings;
+  const marks = (s.marks || []).map(sec => ({ sec, label: `Marca ${fmt(sec)}` }));
+  if (s.markMax) {
+    const same = marks.find(m => m.sec === max);
+    if (same) same.label = `MAX superado · ${fmt(max)}`;
+    else marks.push({ sec: max, label: `MAX superado · ${fmt(max)}` });
+  }
+  return marks.sort((a, b) => a.sec - b.sec);
+}
+
 function openTrainer(plan) {
   if (ui.trainer && ui.trainer.running) return;
   const s = Store.settings;
-  const t = new Trainer(plan, { auto: s.auto, autoStopApnea: s.autoStopApnea }, {
+  const t = new Trainer(plan, { auto: s.auto, autoStopApnea: s.autoStopApnea, marks: apneaMarks(plan.max) }, {
     onTick: updateRun,
     onPhase: () => { ui.phaseChangedAt = performance.now(); updateRun(); },
     onRecord: renderLog,
     onFinish: renderDone,
+    onMark: m => toast(m.label),
     cue: k => Feedback.cue(k, plan.prepLabel),
   });
   ui.trainer = t;
@@ -822,6 +844,24 @@ const ACTIONS = {
     Feedback.unlock();
     Feedback.cue('apnea');
     setTimeout(() => Feedback.cue('rest'), 700);
+  },
+  'add-mark'() {
+    const v = readTime(document, 'mark', 5);
+    const marks = Store.settings.marks || [];
+    if (marks.includes(v)) return toast(`La marca ${fmt(v)} ya existe`);
+    Store.settings.marks = [...marks, v].sort((a, b) => a - b);
+    Store.saveSettings();
+    toast(`Marca añadida: ${fmt(v)}`);
+    render();
+  },
+  'del-mark'(b) {
+    Store.settings.marks = (Store.settings.marks || []).filter(m => m !== Number(b.dataset.v));
+    Store.saveSettings();
+    render();
+  },
+  'test-mark'() {
+    Feedback.unlock();
+    Feedback.cue('mark');
   },
   'export-json'() { downloadFile(`apnea-pelizzari-${isoDate(new Date())}.json`, Store.exportJSON(), 'application/json'); },
   'export-csv'() { downloadFile(`apnea-pelizzari-${isoDate(new Date())}.csv`, Store.exportCSV(), 'text/csv;charset=utf-8'); },

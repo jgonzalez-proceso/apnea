@@ -13,6 +13,8 @@ const DEFAULT_SETTINGS = {
   sound: true,
   vibrate: true,
   voice: false,
+  markMax: true,        // doble pitido corto al superar el MAX durante la apnea
+  marks: [],            // marcas personalizadas (s) con el mismo doble pitido
   safetyAck: false,
 };
 

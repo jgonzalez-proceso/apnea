@@ -252,6 +252,31 @@ main {
 .max-row .field { margin-bottom: 0; }
 .max-row .btn { margin-bottom: 0; }
 
+.marks { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.mark-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--apnea-dim);
+  border: 1px solid rgba(79, 209, 197, 0.4);
+  border-radius: 999px;
+  padding: 4px 4px 4px 12px;
+  font-weight: 700;
+  color: var(--apnea);
+  font-variant-numeric: tabular-nums;
+}
+.mark-chip button {
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 13px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.mark-chip button:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+
 .selects { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .switch-row {

@@ -20,8 +20,8 @@ const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 class Trainer {
   constructor(plan, opts, hooks) {
     this.plan = plan;   // { type, week, label, rounds:[{apnea|null, rest}], prep, prepLabel, endless, max }
-    this.opts = opts;   // { auto, autoStopApnea }
-    this.hooks = hooks; // { onTick, onPhase, onRecord, onFinish, cue }
+    this.opts = opts;   // { auto, autoStopApnea, marks:[{ sec, label }] }
+    this.hooks = hooks; // { onTick, onPhase, onRecord, onFinish, onMark, cue }
     this.phase = 'idle';
     this.idx = 0;
     this.paused = false;
@@ -110,7 +110,9 @@ class Trainer {
             this.hooks.cue('ready');
           }
         }
-      } else if (this.phase === 'apnea' && this.round.apnea) {
+      } else if (this.phase === 'apnea') {
+        this.markCues();
+        if (!this.round.apnea) break;
         const rem = this.round.apnea * 1000 - this.elapsed();
         this.countdownCues(rem);
         if (rem <= 0) {
@@ -138,6 +140,24 @@ class Trainer {
     if (this.phase === 'rest' && s === 10 && this.duration > 15000 && !this.fired.has('ten')) {
       this.fired.add('ten');
       this.hooks.cue('ten');
+    }
+  }
+
+  // Marcas de tiempo durante la apnea (superar el MAX, 3:00…): doble pitido corto.
+  // Si al volver de segundo plano se han pasado varias, suena solo una vez.
+  markCues() {
+    const el = this.elapsed() / 1000;
+    let hit = null;
+    for (const m of this.opts.marks || []) {
+      const key = `mark:${m.sec}`;
+      if (el < m.sec || this.fired.has(key)) continue;
+      this.fired.add(key);
+      // Coincide con el objetivo de la ronda: ya suena el aviso de objetivo.
+      if (m.sec !== this.round.apnea) hit = m;
+    }
+    if (hit) {
+      this.hooks.cue('mark');
+      if (this.hooks.onMark) this.hooks.onMark(hit);
     }
   }
 
@@ -271,12 +291,12 @@ const Feedback = {
     } catch { /* sin audio */ }
   },
 
-  tone(freq, dur = 0.15, delay = 0, vol = 0.3) {
+  tone(freq, dur = 0.15, delay = 0, vol = 0.3, type = 'sine') {
     if (!Store.settings.sound || !this.ctx) return;
     const t0 = this.ctx.currentTime + delay;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-    osc.type = 'sine';
+    osc.type = type;
     osc.frequency.value = freq;
     gain.gain.setValueAtTime(0.0001, t0);
     gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.015);
@@ -327,6 +347,12 @@ const Feedback = {
         this.tone(990, 0.15, 0.44);
         this.vibrate([80, 60, 80, 60, 80]);
         this.say('Objetivo');
+        break;
+      case 'mark':
+        // Pi-pi seco y agudo: distinto de todos los demás avisos.
+        this.tone(1760, 0.05, 0, 0.18, 'square');
+        this.tone(1760, 0.05, 0.11, 0.18, 'square');
+        this.vibrate([30, 60, 30]);
         break;
       case 'ready':
         this.tone(700, 0.3);
