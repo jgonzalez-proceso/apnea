@@ -424,14 +424,14 @@ function viewAjustes() {
     </section>
     <section class="card">
       <h3>Avisos</h3>
-      ${sw('sound', 'Sonido', 'Pitidos en los 3 últimos segundos y al cambiar de fase.')}
+      ${sw('sound', 'Sonido', 'Pitidos en los 3 últimos segundos y al cambiar de fase. Solo suenan si el móvil no está en silencio.')}
       ${sw('vibrate', 'Vibración', 'Solo en móviles compatibles (Android).')}
       ${sw('voice', 'Voz', '«Apnea», «Respira», «Diez segundos».')}
       <button class="btn ghost" data-act="test-sound">Probar sonido</button>
     </section>
     <section class="card">
       <h3>Marcas durante la apnea</h3>
-      <p class="hint">Un doble pitido corto y seco (pi-pi) cuando el reloj de apnea pasa por estos tiempos. Suena en cualquier sesión, también en Test MAX y Apnea libre.</p>
+      <p class="hint">Un doble pitido corto y seco (pi-pi) cuando el reloj de apnea pasa por estos tiempos. Suena en cualquier sesión, también en Test MAX y Apnea libre. Solo se oye si el móvil no está en silencio.</p>
       ${sw('markMax', 'Al superar tu MAX', `Ahora ${fmt(s.max)}. Se actualiza solo si cambias tu MAX.`)}
       <div class="marks">${(s.marks || []).length
         ? s.marks.map(m => `<span class="mark-chip">${fmt(m)}<button data-act="del-mark" data-v="${m}" aria-label="Quitar marca ${fmt(m)}">✕</button></span>`).join('')
