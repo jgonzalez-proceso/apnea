@@ -4,7 +4,7 @@ PWA de entrenamiento de apnea en seco con las tablas CO₂ / O₂ del programa d
 
 ## Stack
 
-- HTML + CSS + JavaScript plano, **sin build, sin dependencias ni npm**. Los scripts se cargan como `<script>` clásicos (no módulos) en `index.html` y comparten el ámbito global, así que el orden importa: `tables.js` → `store.js` → `chart.js` → `timer.js` → `app.js`.
+- HTML + CSS + JavaScript plano, **sin build, sin dependencias ni npm**. Los scripts se cargan como `<script>` clásicos (no módulos) en `index.html` y comparten el ámbito global, así que el orden importa: `tables.js` → `store.js` → `importer.js` → `chart.js` → `timer.js` → `app.js`.
 - Datos solo en `localStorage` del dispositivo (prefijo `pelizzari.v1.`). No hay backend.
 - Despliegue: Vercel (proyecto `apnea-pelizzari`) conectado a GitHub; cada push a `main` despliega. `vercel.json` fuerza `no-cache` en JS/CSS/HTML y `sw.js`.
 
@@ -12,6 +12,7 @@ PWA de entrenamiento de apnea en seco con las tablas CO₂ / O₂ del programa d
 
 - `js/tables.js` — tablas del PDF (calculadas para MAX 1:30 = `BASE_MAX`), escalado proporcional al MAX del usuario (redondeo a 5 s) y `getTable()`, que aplica las ediciones manuales (`overrides`) por encima.
 - `js/store.js` — `Store`: ajustes (`DEFAULT_SETTINGS`), sesiones, tablas editadas, exportar/importar JSON y CSV.
+- `js/importer.js` — lectura tolerante de CSV/JSON para importar sesiones hechas fuera de la app (`parseImport()`), plantilla CSV e instrucciones para pedírselo a una IA (`AI_PROMPT`). No guarda nada: la app muestra un resumen antes.
 - `js/timer.js` — `Trainer`: motor de la sesión (prep → apnea → descanso → … → fin) basado en marcas de tiempo para no desfasarse en segundo plano; `Feedback`: sonidos WebAudio, vibración, voz y wake lock. Los avisos se piden con `hooks.cue(kind)`.
 - `js/chart.js` — gráficas SVG propias (línea / barras).
 - `js/app.js` — vistas (Hoy, Tablas, Historial, Progreso, Ajustes), modales, pantalla del cronómetro y el mapa `ACTIONS` (clics delegados vía `data-act`; los ajustes simples se guardan solos con `data-setting`).

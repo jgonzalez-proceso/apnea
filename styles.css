@@ -221,6 +221,52 @@ main {
 .seg button.on { background: var(--apnea); color: #04201d; }
 .card > .seg:first-child { margin-top: 0; }
 
+.hist-add { margin-bottom: 12px; }
+.hist-add .btn { flex: 1; }
+.as-rounds { display: grid; gap: 6px; margin: 6px 0 4px; }
+.as-round { display: grid; grid-template-columns: 34px 1fr 88px; align-items: center; gap: 8px; }
+.as-round input {
+  width: 100%;
+  text-align: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 4px;
+  font-variant-numeric: tabular-nums;
+}
+.steps { margin: 4px 0 10px; padding-left: 20px; font-size: 13.5px; color: var(--muted); }
+.steps li { margin: 2px 0; }
+details.prompt { margin: 10px 0; font-size: 13px; color: var(--muted); }
+details.prompt pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+.imp-sum { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.imp-sum p { margin: 4px 0; }
+.imp-list { list-style: none; padding: 0; margin: 6px 0 10px; font-size: 13px; }
+.imp-list li { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.imp-errors { font-size: 12.5px; color: var(--danger); margin: 8px 0; }
+.imp-errors ul { margin: 4px 0 0; padding-left: 18px; }
+
+.dow-pick { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.dow-pick button {
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  padding: 9px 0;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dow-pick button.on { background: var(--rest-dim); border-color: var(--rest); color: var(--text); }
+
 .field { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; font-size: 13px; color: var(--muted); min-width: 0; }
 .field.inline { flex-direction: row; align-items: center; justify-content: space-between; }
 .field.inline input { width: 90px; }
@@ -548,3 +594,4 @@ dialog#modal::backdrop { background: rgba(3, 7, 14, 0.7); }
 @media (min-width: 700px) {
   .tr-log { max-width: 520px; }
 }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--apnea); text-decoration: underline; cursor: pointer; font-size: inherit; }

@@ -1,11 +1,12 @@
 // Service worker: red primero (para recibir actualizaciones) y caché como respaldo sin conexión.
-const CACHE = 'pelizzari-v2';
+const CACHE = 'pelizzari-v3';
 const FILES = [
   './',
   'index.html',
   'styles.css',
   'js/tables.js',
   'js/store.js',
+  'js/importer.js',
   'js/chart.js',
   'js/timer.js',
   'js/app.js',

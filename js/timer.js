@@ -74,6 +74,7 @@ class Trainer {
     const t = clock();
     if (this.plan.prep > 0) this.enter('prep', t, this.plan.prep * 1000);
     else this.enter('apnea', t);
+    Feedback.keepAlive(true);
     this.loop = setInterval(() => this.tick(), 100);
     this.tick();
   }
@@ -262,6 +263,7 @@ class Trainer {
 
   finish() {
     clearInterval(this.loop);
+    Feedback.keepAlive(false);
     this.phase = 'done';
     this.paused = false;
     this.session.terminada = true;
@@ -276,8 +278,12 @@ class Trainer {
 }
 
 // Sonidos (WebAudio), vibración, voz y pantalla encendida.
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 const Feedback = {
   ctx: null,
+  hum: null,
   wakeLock: null,
   wantWake: false,
 
@@ -298,12 +304,32 @@ const Feedback = {
     } catch { /* sin audio */ }
   },
 
-  tone(freq, dur = 0.15, delay = 0, vol = 0.3, type = 'sine') {
+  // Durante la sesión mantiene un tono inaudible sonando. Tras varios segundos de
+  // silencio el móvil (y más aún los auriculares Bluetooth) apaga la salida de audio
+  // y se come los pitidos cortos de la cuenta atrás; así la salida sigue despierta.
+  keepAlive(on) {
+    try {
+      if (on && !this.hum && this.ctx) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.frequency.value = 440;
+        gain.gain.value = 0.0004;
+        osc.connect(gain).connect(this.ctx.destination);
+        osc.start();
+        this.hum = osc;
+      } else if (!on && this.hum) {
+        this.hum.stop();
+        this.hum = null;
+      }
+    } catch { /* sin audio */ }
+  },
+
+  tone(freq, dur = 0.15, delay = 0, vol = 0.3, type = 'sine', retry = true) {
     if (!Store.settings.sound || !this.ctx) return;
     // Si el contexto aún está arrancando (primer toque) o iOS lo ha interrumpido,
     // se programa al reanudarse; si no, los tonos cortos se pierden en silencio.
     if (this.ctx.state !== 'running') {
-      this.ctx.resume().then(() => this.tone(freq, dur, delay, vol, type)).catch(() => {});
+      if (retry) this.ctx.resume().then(() => this.tone(freq, dur, delay, vol, type, false)).catch(() => {});
       return;
     }
     const t0 = this.ctx.currentTime + 0.03 + delay;
@@ -320,8 +346,38 @@ const Feedback = {
   },
 
   vibrate(pattern) {
-    if (!Store.settings.vibrate || !navigator.vibrate) return;
-    try { navigator.vibrate(pattern); } catch { /* no soportado */ }
+    if (!Store.settings.vibrate) return;
+    if (navigator.vibrate) {
+      try { navigator.vibrate(pattern); } catch { /* no soportado */ }
+      return;
+    }
+    if (!IOS) return;
+    // iOS no tiene API de vibración: cada tramo "encendido" del patrón se convierte
+    // en toques hápticos (uno cada 120 ms en los tramos largos).
+    const p = Array.isArray(pattern) ? pattern : [pattern];
+    let t = 0;
+    p.forEach((ms, i) => {
+      if (i % 2 === 0) {
+        for (let k = 0; k === 0 || k * 120 < ms; k++) setTimeout(() => this.haptic(), t + k * 120);
+      }
+      t += ms;
+    });
+  },
+
+  // Truco de iOS 18+: activar un <input type="checkbox" switch> da un toque háptico.
+  haptic() {
+    try {
+      const label = document.createElement('label');
+      label.ariaHidden = 'true';
+      label.style.display = 'none';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.setAttribute('switch', '');
+      label.appendChild(input);
+      document.head.appendChild(label);
+      label.click();
+      label.remove();
+    } catch { /* no soportado */ }
   },
 
   say(text) {
@@ -337,21 +393,22 @@ const Feedback = {
   cue(kind, prepLabel) {
     switch (kind) {
       case 'tick':
-        this.tone(660, 0.09);
+        // Triangular a 1 kHz: se oye bien por el altavoz del móvil (la senoidal grave no).
+        this.tone(1000, 0.12, 0, 0.45, 'triangle');
         this.vibrate(40);
         break;
       case 'prep':
         this.say(prepLabel || 'Prepárate');
         break;
       case 'apnea':
-        this.tone(880, 0.14);
-        this.tone(880, 0.14, 0.2);
-        this.vibrate([120, 80, 120]);
+        this.tone(880, 0.14, 0, 0.4, 'triangle');
+        this.tone(880, 0.14, 0.2, 0.4, 'triangle');
+        this.vibrate([200, 100, 200]);
         this.say('Apnea');
         break;
       case 'rest':
-        this.tone(520, 0.55);
-        this.vibrate(450);
+        this.tone(520, 0.55, 0, 0.4, 'triangle');
+        this.vibrate(500);
         this.say('Respira');
         break;
       case 'target':

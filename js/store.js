@@ -6,7 +6,9 @@ const STORE_PREFIX = 'pelizzari.v1.';
 
 const DEFAULT_SETTINGS = {
   max: 90,              // MAX en segundos (el PDF está calculado para 1:30)
-  startDate: null,      // 'yyyy-mm-dd'; el programa se alinea al lunes de esa semana
+  startDate: null,      // 'yyyy-mm-dd'; el calendario empieza ese mismo día
+  startWeek: 1,         // semana del programa con la que empieza (para continuar uno hecho por tu cuenta)
+  restDays: [],         // días fijos de descanso (getDay: 0 = domingo), hasta 2; vacío = los 2 últimos de cada semana
   auto: true,           // transición automática apnea → descanso → apnea
   autoStopApnea: true,  // en automático, la apnea se corta al llegar al objetivo
   prep: 10,             // cuenta atrás antes de la primera apnea (s)
@@ -96,20 +98,25 @@ const Store = {
     return '﻿' + rows.join('\r\n');
   },
 
-  // Fusiona sesiones por id; ajustes y tablas editadas se toman del archivo.
-  importJSON(obj) {
-    if (!obj || !Array.isArray(obj.sessions)) throw new Error('El archivo no parece una copia de esta app.');
+  // Añade o reemplaza sesiones por id. Devuelve cuántas son nuevas.
+  mergeSessions(list) {
     let added = 0;
-    for (const s of obj.sessions) {
+    for (const s of list) {
       if (!s || !s.id) continue;
-      if (!this.sessions.some(x => x.id === s.id)) added++;
       const i = this.sessions.findIndex(x => x.id === s.id);
       if (i >= 0) this.sessions[i] = s;
-      else this.sessions.push(s);
+      else { this.sessions.push(s); added++; }
     }
+    writeKey('sessions', this.sessions);
+    return added;
+  },
+
+  // Copia completa: fusiona sesiones por id; ajustes y tablas editadas se toman del archivo.
+  importJSON(obj) {
+    if (!obj || !Array.isArray(obj.sessions)) throw new Error('El archivo no parece una copia de esta app.');
+    const added = this.mergeSessions(obj.sessions);
     if (obj.settings) this.settings = { ...DEFAULT_SETTINGS, ...obj.settings, safetyAck: true };
     if (obj.overrides) this.overrides = { ...obj.overrides };
-    writeKey('sessions', this.sessions);
     writeKey('settings', this.settings);
     writeKey('overrides', this.overrides);
     return added;
