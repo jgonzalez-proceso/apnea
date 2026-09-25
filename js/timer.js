@@ -278,9 +278,6 @@ class Trainer {
 }
 
 // Sonidos (WebAudio), vibración, voz y pantalla encendida.
-const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
 const Feedback = {
   ctx: null,
   hum: null,
@@ -345,39 +342,10 @@ const Feedback = {
     osc.stop(t0 + dur + 0.05);
   },
 
+  // Safari en iPhone no permite vibrar desde una web: ahí no hace nada.
   vibrate(pattern) {
-    if (!Store.settings.vibrate) return;
-    if (navigator.vibrate) {
-      try { navigator.vibrate(pattern); } catch { /* no soportado */ }
-      return;
-    }
-    if (!IOS) return;
-    // iOS no tiene API de vibración: cada tramo "encendido" del patrón se convierte
-    // en toques hápticos (uno cada 120 ms en los tramos largos).
-    const p = Array.isArray(pattern) ? pattern : [pattern];
-    let t = 0;
-    p.forEach((ms, i) => {
-      if (i % 2 === 0) {
-        for (let k = 0; k === 0 || k * 120 < ms; k++) setTimeout(() => this.haptic(), t + k * 120);
-      }
-      t += ms;
-    });
-  },
-
-  // Truco de iOS 18+: activar un <input type="checkbox" switch> da un toque háptico.
-  haptic() {
-    try {
-      const label = document.createElement('label');
-      label.ariaHidden = 'true';
-      label.style.display = 'none';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.setAttribute('switch', '');
-      label.appendChild(input);
-      document.head.appendChild(label);
-      label.click();
-      label.remove();
-    } catch { /* no soportado */ }
+    if (!Store.settings.vibrate || !navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch { /* no soportado */ }
   },
 
   say(text) {

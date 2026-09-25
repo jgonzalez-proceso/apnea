@@ -476,7 +476,9 @@ function viewAjustes() {
     <section class="card">
       <h3>Avisos</h3>
       ${sw('sound', 'Sonido', 'Pitidos en los 3 últimos segundos y al cambiar de fase. Solo suenan si el móvil no está en silencio.')}
-      ${sw('vibrate', 'Vibración', 'Al empezar y terminar cada apnea y en la cuenta atrás. En iPhone (iOS 18 o posterior) son toques hápticos cortos.')}
+      ${'vibrate' in navigator
+        ? sw('vibrate', 'Vibración', 'Al empezar y terminar cada apnea y en la cuenta atrás.')
+        : '<p class="hint">Vibración: este navegador no permite vibrar desde una web (en iPhone, Safari no lo deja). Para no mirar la pantalla, usa el sonido o la voz, mejor con auriculares.</p>'}
       ${sw('voice', 'Voz', '«Apnea», «Respira», «Diez segundos».')}
       <button class="btn ghost" data-act="test-sound">Probar sonido</button>
     </section>
